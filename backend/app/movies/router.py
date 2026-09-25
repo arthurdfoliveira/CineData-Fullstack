@@ -1,13 +1,13 @@
 """Rotas HTTP do domínio de filmes."""
- 
+
 from enum import StrEnum
 from typing import Annotated
- 
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
- 
+
 from app.db.session import get_db
 from app.movies.models import (
     DimGenre,
@@ -24,33 +24,34 @@ from app.movies.schemas import (
     MovieReviewOut,
     Page,
 )
- 
+
 router = APIRouter()
- 
- 
+genres_router = APIRouter()
+
+
 class OrderBy(StrEnum):
     popularidade = "popularidade"
     nota_tmdb = "nota_tmdb"
     ano_lancamento = "ano_lancamento"
     titulo = "titulo"
- 
- 
+
+
 class OrderDir(StrEnum):
     asc = "asc"
     desc = "desc"
- 
- 
+
+
 PageParam = Annotated[int, Query(ge=1)]
 PageSizeParam = Annotated[int, Query(ge=1, le=100)]
- 
- 
+
+
 async def _get_movie_or_404(db: AsyncSession, id_filme: str) -> DimMovie:
     movie = await db.scalar(select(DimMovie).where(DimMovie.id_filme == id_filme))
     if movie is None:
         raise HTTPException(status_code=404, detail="Filme não encontrado")
     return movie
- 
- 
+
+
 @router.get("", response_model=Page[MovieListItem])
 async def list_movies(
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -67,16 +68,16 @@ async def list_movies(
         filters.append(DimMovie.titulo.ilike(f"%{search}%"))
     if ano is not None:
         filters.append(DimMovie.ano_lancamento == ano)
- 
+
     base = select(DimMovie.sk_movie_id)
     if genero:
         base = base.join(bridge_movie_genre).join(DimGenre).where(DimGenre.nome_genero == genero)
     base = base.where(*filters)
- 
+
     total = await db.scalar(select(func.count()).select_from(base.subquery()))
     total = total or 0
     total_pages = max(1, -(-total // page_size))
- 
+
     order_column = {
         OrderBy.popularidade: FactMoviePerformance.popularidade,
         OrderBy.nota_tmdb: FactMoviePerformance.nota_tmdb,
@@ -84,7 +85,7 @@ async def list_movies(
         OrderBy.titulo: DimMovie.titulo,
     }[order_by]
     order_clause = order_column.asc() if order is OrderDir.asc else order_column.desc()
- 
+
     query = (
         select(DimMovie)
         .outerjoin(FactMoviePerformance)
@@ -96,9 +97,9 @@ async def list_movies(
     if genero:
         query = query.join(bridge_movie_genre).join(DimGenre).where(DimGenre.nome_genero == genero)
     query = query.where(*filters)
- 
+
     movies = (await db.scalars(query)).unique().all()
- 
+
     items = [
         MovieListItem(
             id_filme=m.id_filme,
@@ -119,8 +120,8 @@ async def list_movies(
         for m in movies
     ]
     return Page(items=items, page=page, page_size=page_size, total=total, total_pages=total_pages)
- 
- 
+
+
 @router.get("/{id_filme}", response_model=MovieDetail)
 async def get_movie(id_filme: str, db: Annotated[AsyncSession, Depends(get_db)]) -> MovieDetail:
     query = (
@@ -137,7 +138,7 @@ async def get_movie(id_filme: str, db: Annotated[AsyncSession, Depends(get_db)])
     movie = await db.scalar(query)
     if movie is None:
         raise HTTPException(status_code=404, detail="Filme não encontrado")
- 
+
     return MovieDetail(
         id_filme=movie.id_filme,
         titulo=movie.titulo,
@@ -159,8 +160,8 @@ async def get_movie(id_filme: str, db: Annotated[AsyncSession, Depends(get_db)])
         if movie.reviews_summary
         else None,
     )
- 
- 
+
+
 @router.get("/{id_filme}/reviews", response_model=Page[MovieReviewOut])
 async def list_movie_reviews(
     id_filme: str,
@@ -169,7 +170,7 @@ async def list_movie_reviews(
     page_size: PageSizeParam = 20,
 ) -> Page[MovieReviewOut]:
     movie = await _get_movie_or_404(db, id_filme)
- 
+
     total = await db.scalar(
         select(func.count())
         .select_from(MovieReview)
@@ -177,7 +178,7 @@ async def list_movie_reviews(
     )
     total = total or 0
     total_pages = max(1, -(-total // page_size))
- 
+
     reviews = (
         await db.scalars(
             select(MovieReview)
@@ -187,14 +188,14 @@ async def list_movie_reviews(
             .limit(page_size)
         )
     ).all()
- 
+
     items = [MovieReviewOut.model_validate(r) for r in reviews]
     return Page(items=items, page=page, page_size=page_size, total=total, total_pages=total_pages)
- 
- 
+
+
 async def _refresh_reviews_summary(db: AsyncSession, sk_movie_id: str) -> None:
     """Recalcula quantidade e média de avaliações do filme a partir de movie_reviews."""
- 
+
     qtd, media = (
         await db.execute(
             select(func.count(), func.avg(MovieReview.nota)).where(
@@ -202,16 +203,16 @@ async def _refresh_reviews_summary(db: AsyncSession, sk_movie_id: str) -> None:
             )
         )
     ).one()
- 
+
     summary = await db.scalar(select(DimReview).where(DimReview.sk_movie_id == sk_movie_id))
     if summary is None:
         summary = DimReview(sk_movie_id=sk_movie_id)
         db.add(summary)
- 
+
     summary.qtd_avaliacoes_usuarios = qtd
     summary.nota_media_usuarios = round(media, 2) if media is not None else None
- 
- 
+
+
 @router.post("/{id_filme}/reviews", response_model=MovieReviewOut, status_code=201)
 async def create_movie_review(
     id_filme: str,
@@ -219,13 +220,19 @@ async def create_movie_review(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> MovieReviewOut:
     movie = await _get_movie_or_404(db, id_filme)
- 
+
     review = MovieReview(sk_movie_id=movie.sk_movie_id, **payload.model_dump())
     db.add(review)
     await db.flush()
     await _refresh_reviews_summary(db, movie.sk_movie_id)
     await db.commit()
     await db.refresh(review)
- 
+
     return MovieReviewOut.model_validate(review)
- 
+
+
+@genres_router.get("", response_model=list[str])
+async def list_genres(db: Annotated[AsyncSession, Depends(get_db)]) -> list[str]:
+    """Lista os nomes dos gêneros em ordem alfabética (usado no filtro do catálogo)."""
+
+    return list(await db.scalars(select(DimGenre.nome_genero).order_by(DimGenre.nome_genero)))
