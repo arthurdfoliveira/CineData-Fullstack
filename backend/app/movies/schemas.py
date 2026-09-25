@@ -4,7 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Generic, TypeVar
  
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
  
 T = TypeVar("T")
  
@@ -80,7 +80,17 @@ class MovieDetail(BaseModel):
 class MovieReviewOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
  
+    sk_movie_review_id: str
     nome: str
     nota: float
     comentario: str
     created_at: datetime
+ 
+ 
+class MovieReviewCreate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+ 
+    nome: str = Field(min_length=1, max_length=120)
+    nota: float = Field(ge=0, le=10)
+    comentario: str = Field(min_length=1, max_length=4000)
+ 

@@ -20,6 +20,7 @@ from app.movies.models import (
 from app.movies.schemas import (
     MovieDetail,
     MovieListItem,
+    MovieReviewCreate,
     MovieReviewOut,
     Page,
 )
@@ -181,7 +182,7 @@ async def list_movie_reviews(
         await db.scalars(
             select(MovieReview)
             .where(MovieReview.sk_movie_id == movie.sk_movie_id)
-            .order_by(MovieReview.created_at.desc())
+            .order_by(MovieReview.created_at.desc(), MovieReview.sk_movie_review_id)
             .offset((page - 1) * page_size)
             .limit(page_size)
         )
@@ -191,7 +192,40 @@ async def list_movie_reviews(
     return Page(items=items, page=page, page_size=page_size, total=total, total_pages=total_pages)
  
  
-__all__ = ["router"]
-# DimReview importado só para registrar o relationship reviews_summary no metadata.
-_ = DimReview
+async def _refresh_reviews_summary(db: AsyncSession, sk_movie_id: str) -> None:
+    """Recalcula quantidade e média de avaliações do filme a partir de movie_reviews."""
+ 
+    qtd, media = (
+        await db.execute(
+            select(func.count(), func.avg(MovieReview.nota)).where(
+                MovieReview.sk_movie_id == sk_movie_id
+            )
+        )
+    ).one()
+ 
+    summary = await db.scalar(select(DimReview).where(DimReview.sk_movie_id == sk_movie_id))
+    if summary is None:
+        summary = DimReview(sk_movie_id=sk_movie_id)
+        db.add(summary)
+ 
+    summary.qtd_avaliacoes_usuarios = qtd
+    summary.nota_media_usuarios = round(media, 2) if media is not None else None
+ 
+ 
+@router.post("/{id_filme}/reviews", response_model=MovieReviewOut, status_code=201)
+async def create_movie_review(
+    id_filme: str,
+    payload: MovieReviewCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MovieReviewOut:
+    movie = await _get_movie_or_404(db, id_filme)
+ 
+    review = MovieReview(sk_movie_id=movie.sk_movie_id, **payload.model_dump())
+    db.add(review)
+    await db.flush()
+    await _refresh_reviews_summary(db, movie.sk_movie_id)
+    await db.commit()
+    await db.refresh(review)
+ 
+    return MovieReviewOut.model_validate(review)
  
