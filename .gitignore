@@ -32,3 +32,6 @@ storybook-static/
 # Logs
 *.log
 npm-debug.log*
+
+# Data (CSV's)
+backend/data/*.csv
