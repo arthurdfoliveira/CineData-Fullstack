@@ -84,9 +84,14 @@ a {
 
 /* ---------- Catálogo ---------- */
 
-.catalog {
+.catalog,
+.page {
   padding: 2rem clamp(1rem, 4vw, 3rem) 4rem;
   max-width: 1400px;
+}
+
+.muted {
+  color: var(--text-muted);
 }
 
 .filters {
@@ -284,6 +289,311 @@ a {
   cursor: default;
 }
 
+/* ---------- Detalhe do filme ---------- */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+}
+
+.hero__backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.28;
+}
+
+/* Escurece a foto de fundo até o veludo, pra o texto ficar legível. */
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgb(43 18 25 / 0.3), var(--velvet) 95%);
+}
+
+.hero__content {
+  position: relative;
+  z-index: 1;
+  max-width: 1400px;
+  padding: 1.5rem clamp(1rem, 4vw, 3rem) 2.5rem;
+}
+
+.hero__back {
+  display: inline-block;
+  margin-bottom: 2rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.hero__back:hover {
+  color: var(--brass);
+}
+
+.hero__grid {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 2rem;
+  align-items: end;
+}
+
+.hero__poster {
+  aspect-ratio: 2 / 3;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--velvet-raised);
+  outline: 1px solid var(--line);
+}
+
+.hero__poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.hero__poster span {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 1rem;
+  text-align: center;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.75rem;
+  color: var(--brass-dim);
+}
+
+.hero__title {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(2.75rem, 7vw, 5.5rem);
+  line-height: 0.9;
+  color: var(--text);
+}
+
+.hero__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  color: var(--text-muted);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 1.25rem 0 0;
+  padding: 0;
+}
+
+.tags a {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--brass-dim);
+  border-radius: 999px;
+  font-size: 0.875rem;
+  color: var(--brass);
+  text-decoration: none;
+}
+
+.tags a:hover {
+  background: var(--velvet-raised);
+}
+
+.detail {
+  display: grid;
+  gap: 3rem;
+  max-width: 900px;
+}
+
+.detail__section h2 {
+  margin: 0 0 1rem;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--brass);
+}
+
+.detail__sinopse {
+  margin: 0;
+  max-width: 65ch;
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+
+.scores {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin: 0;
+}
+
+.score {
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+/* A nota dos usuários do CineData é a principal. */
+.score:first-child {
+  border-color: var(--brass-dim);
+  background: var(--velvet-raised);
+}
+
+.score dt {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.score dd {
+  display: grid;
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+}
+
+.score__value {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 3rem;
+  line-height: 1;
+  color: var(--brass);
+}
+
+.facts {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+}
+
+.facts > div {
+  display: grid;
+  grid-template-columns: 8rem 1fr;
+  gap: 1rem;
+}
+
+.facts dt {
+  color: var(--text-muted);
+}
+
+.facts dd {
+  margin: 0;
+}
+
+.facts--money dd {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Avaliações ---------- */
+
+.review-form {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--velvet-raised);
+}
+
+.review-form__row {
+  display: grid;
+  grid-template-columns: 1fr 9rem;
+  gap: 1rem;
+}
+
+.review-form label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.review-form input,
+.review-form textarea {
+  width: 100%;
+  font: inherit;
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--velvet);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.6rem 0.75rem;
+}
+
+.review-form textarea {
+  resize: vertical;
+}
+
+.review-form__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.review-form__footer p {
+  margin: 0;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.form-ok {
+  color: var(--brass);
+}
+
+.form-error {
+  color: #ffb4a8;
+}
+
+.reviews {
+  list-style: none;
+  margin: 2rem 0 0;
+  padding: 0;
+}
+
+.review {
+  padding: 1.25rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.review__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+  margin: 0;
+}
+
+.review__nota {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--brass);
+}
+
+.review__head time {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.review__text {
+  margin: 0.5rem 0 0;
+  max-width: 65ch;
+  white-space: pre-line;
+}
+
 /* ---------- Responsivo ---------- */
 
 @media (max-width: 900px) {
@@ -293,6 +603,26 @@ a {
 
   .filters__search {
     grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero__grid {
+    grid-template-columns: 110px 1fr;
+    gap: 1.25rem;
+  }
+
+  .scores {
+    grid-template-columns: 1fr;
+  }
+
+  .facts > div {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+
+  .review-form__row {
+    grid-template-columns: 1fr;
   }
 }
 

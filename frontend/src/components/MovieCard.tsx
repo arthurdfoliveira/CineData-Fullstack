@@ -1,10 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { MovieListItem } from '../api/types'
-
-function formatNota(nota: number | null) {
-  return nota === null ? '–' : nota.toFixed(1).replace('.', ',')
-}
+import { formatNota } from '../format'
 
 export function MovieCard({ movie }: { movie: MovieListItem }) {
   const [posterFailed, setPosterFailed] = useState(false)

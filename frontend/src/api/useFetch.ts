@@ -6,11 +6,20 @@ interface FetchState<T> {
   error?: Error
 }
 
+interface Options {
+  /** Mantém o último resultado na tela enquanto a nova busca carrega. */
+  keepPrevious?: boolean
+}
+
 /**
  * Busca dados sempre que `key` muda e cancela a requisição anterior.
  * `loading` fica true enquanto o resultado guardado não é o da chave atual.
  */
-export function useFetch<T>(key: string, fetcher: (signal: AbortSignal) => Promise<T>) {
+export function useFetch<T>(
+  key: string,
+  fetcher: (signal: AbortSignal) => Promise<T>,
+  { keepPrevious = false }: Options = {},
+) {
   const [state, setState] = useState<FetchState<T>>({ key: '' })
 
   useEffect(() => {
@@ -29,7 +38,7 @@ export function useFetch<T>(key: string, fetcher: (signal: AbortSignal) => Promi
 
   const isCurrent = state.key === key
   return {
-    data: isCurrent ? state.data : undefined,
+    data: isCurrent || keepPrevious ? state.data : undefined,
     error: isCurrent ? state.error : undefined,
     loading: !isCurrent,
   }
