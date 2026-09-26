@@ -1,5 +1,5 @@
 import { type FormEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { getGenres, getMovies } from '../api/client'
 import type { MovieFilters, OrderBy, OrderDir } from '../api/types'
 import { useFetch } from '../api/useFetch'
@@ -18,6 +18,7 @@ const PAGE_SIZE = 24
 
 export function CatalogPage() {
   const [params, setParams] = useSearchParams()
+  const aviso = (useLocation().state as { aviso?: string } | null)?.aviso
 
   const search = params.get('search') ?? ''
   const genero = params.get('genero') ?? ''
@@ -67,6 +68,12 @@ export function CatalogPage() {
 
   return (
     <main className="catalog">
+      {aviso && (
+        <p className="notice" role="status">
+          {aviso}
+        </p>
+      )}
+
       <form className="filters" onSubmit={handleSubmit} key={`${search}|${ano}`}>
         <label className="filters__search">
           <span>Buscar por título</span>

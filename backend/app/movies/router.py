@@ -4,8 +4,8 @@ from enum import StrEnum
 from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -234,6 +234,15 @@ async def update_movie(
     await db.commit()
 
     return _to_detail(await _load_movie(db, id_filme))
+
+
+@router.delete("/{id_filme}", status_code=204)
+async def delete_movie(id_filme: str, db: Annotated[AsyncSession, Depends(get_db)]) -> Response:
+    movie = await _get_movie_or_404(db, id_filme)
+    # As FKs têm ON DELETE CASCADE: vínculos, métricas e avaliações saem junto.
+    await db.execute(delete(DimMovie).where(DimMovie.sk_movie_id == movie.sk_movie_id))
+    await db.commit()
+    return Response(status_code=204)
 
 
 @router.get("/{id_filme}/reviews", response_model=Page[MovieReviewOut])

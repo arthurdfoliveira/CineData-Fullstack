@@ -61,3 +61,13 @@ async def test_update_unknown_movie_returns_404(client: httpx.AsyncClient) -> No
     response = await client.put(f"{URL}/nao-existe", json=NOVO_FILME)
 
     assert response.status_code == 404
+
+
+async def test_delete_movie_removes_it_and_its_reviews(client: httpx.AsyncClient) -> None:
+    await client.post(f"{URL}/1/reviews", json={"nome": "Ana", "nota": 7, "comentario": "Bom"})
+
+    response = await client.delete(f"{URL}/1")
+
+    assert response.status_code == 204
+    assert (await client.get(f"{URL}/1")).status_code == 404
+    assert (await client.delete(f"{URL}/1")).status_code == 404

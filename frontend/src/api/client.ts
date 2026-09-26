@@ -29,6 +29,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const detail = typeof body?.detail === 'string' ? body.detail : undefined
     throw new ApiError(response.status, `Erro ${response.status} ao acessar ${path}`, detail)
   }
+  if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
 }
 
@@ -73,4 +74,8 @@ export function createMovie(movie: MovieInput) {
 
 export function updateMovie(id: string, movie: MovieInput) {
   return sendJson<MovieDetail>('PUT', `/movies/${encodeURIComponent(id)}`, movie)
+}
+
+export function deleteMovie(id: string) {
+  return request<void>(`/movies/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }

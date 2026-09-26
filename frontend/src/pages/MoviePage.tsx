@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { ApiError, getMovie, getMovieReviews } from '../api/client'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { ApiError, deleteMovie, getMovie, getMovieReviews } from '../api/client'
 import type { MovieDetail, Person } from '../api/types'
 import { useFetch } from '../api/useFetch'
 import { Pagination } from '../components/Pagination'
@@ -133,8 +133,27 @@ function MovieView({ id }: { id: string }) {
 }
 
 function MovieHero({ movie }: { movie: MovieDetail }) {
+  const navigate = useNavigate()
   const [posterFailed, setPosterFailed] = useState(false)
   const [backdropFailed, setBackdropFailed] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleDelete() {
+    const ok = window.confirm(
+      `Remover "${movie.titulo}" do catálogo? As avaliações dele também serão apagadas.`,
+    )
+    if (!ok) return
+
+    setDeleting(true)
+    try {
+      await deleteMovie(movie.id_filme)
+      navigate('/', { state: { aviso: `"${movie.titulo}" foi removido do catálogo.` } })
+    } catch {
+      setDeleting(false)
+      window.alert('Não foi possível remover o filme agora. Tente de novo.')
+    }
+  }
+
   const facts = [
     formatDate(movie.data_lancamento) ?? movie.ano_lancamento,
     formatDuration(movie.duracao_minutos),
@@ -160,6 +179,14 @@ function MovieHero({ movie }: { movie: MovieDetail }) {
             <Link to={`/filmes/${movie.id_filme}/editar`} className="button-ghost">
               Editar filme
             </Link>
+            <button
+              type="button"
+              className="button-ghost button-danger"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? 'Removendo…' : 'Remover filme'}
+            </button>
           </div>
         </div>
         <div className="hero__grid">
