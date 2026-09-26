@@ -83,3 +83,13 @@ export interface ReviewInput {
   nota: number
   comentario: string
 }
+
+export interface MovieInput {
+  titulo: string
+  diretor: string | null
+  ano_lancamento: number | null
+  generos: string[]
+  sinopse: string | null
+  duracao_minutos: number | null
+  url_poster: string | null
+}

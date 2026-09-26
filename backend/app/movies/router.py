@@ -2,6 +2,7 @@
 
 from enum import StrEnum
 from typing import Annotated
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
@@ -12,6 +13,7 @@ from app.db.session import get_db
 from app.movies.models import (
     DimGenre,
     DimMovie,
+    DimPerson,
     DimReview,
     FactMoviePerformance,
     MovieReview,
@@ -19,6 +21,7 @@ from app.movies.models import (
 )
 from app.movies.schemas import (
     MovieDetail,
+    MovieInput,
     MovieListItem,
     MovieReviewCreate,
     MovieReviewOut,
@@ -122,8 +125,9 @@ async def list_movies(
     return Page(items=items, page=page, page_size=page_size, total=total, total_pages=total_pages)
 
 
-@router.get("/{id_filme}", response_model=MovieDetail)
-async def get_movie(id_filme: str, db: Annotated[AsyncSession, Depends(get_db)]) -> MovieDetail:
+async def _load_movie(db: AsyncSession, id_filme: str) -> DimMovie:
+    """Carrega o filme com tudo que a página de detalhe mostra (ou devolve 404)."""
+
     query = (
         select(DimMovie)
         .where(DimMovie.id_filme == id_filme)
@@ -134,11 +138,17 @@ async def get_movie(id_filme: str, db: Annotated[AsyncSession, Depends(get_db)])
             joinedload(DimMovie.performance),
             joinedload(DimMovie.reviews_summary),
         )
+        # Garante dados atualizados depois de um cadastro/edição na mesma sessão.
+        .execution_options(populate_existing=True)
     )
     movie = await db.scalar(query)
     if movie is None:
         raise HTTPException(status_code=404, detail="Filme não encontrado")
+    return movie
 
+
+def _to_detail(movie: DimMovie) -> MovieDetail:
+    summary = movie.reviews_summary
     return MovieDetail(
         id_filme=movie.id_filme,
         titulo=movie.titulo,
@@ -153,13 +163,66 @@ async def get_movie(id_filme: str, db: Annotated[AsyncSession, Depends(get_db)])
         produtoras=[c.nome_produtora for c in movie.companies],
         elenco=movie.people,
         performance=movie.performance,
-        nota_media_usuarios=movie.reviews_summary.nota_media_usuarios
-        if movie.reviews_summary
-        else None,
-        qtd_avaliacoes_usuarios=movie.reviews_summary.qtd_avaliacoes_usuarios
-        if movie.reviews_summary
-        else None,
+        nota_media_usuarios=summary.nota_media_usuarios if summary else None,
+        qtd_avaliacoes_usuarios=summary.qtd_avaliacoes_usuarios if summary else None,
     )
+
+
+async def _apply_input(db: AsyncSession, movie: DimMovie, payload: MovieInput) -> None:
+    """Copia os dados do formulário para o filme, incluindo gêneros e diretor."""
+
+    movie.titulo = payload.titulo
+    movie.ano_lancamento = payload.ano_lancamento
+    movie.sinopse = payload.sinopse
+    movie.duracao_minutos = payload.duracao_minutos
+    movie.url_poster = payload.url_poster
+    # A data completa não vem do formulário; se o ano mudou, ela deixa de valer.
+    if movie.data_lancamento and movie.data_lancamento.year != payload.ano_lancamento:
+        movie.data_lancamento = None
+
+    genres = list(
+        await db.scalars(select(DimGenre).where(DimGenre.nome_genero.in_(payload.generos)))
+    )
+    unknown = set(payload.generos) - {g.nome_genero for g in genres}
+    if unknown:
+        raise HTTPException(
+            status_code=422, detail=f"Gênero(s) inexistente(s): {', '.join(sorted(unknown))}"
+        )
+    movie.genres = sorted(genres, key=lambda g: g.nome_genero)
+
+    # Troca só a direção; elenco e roteiristas continuam como estavam.
+    # Vários diretores chegam separados por vírgula (nenhum nome da base tem vírgula).
+    others = [p for p in movie.people if p.tipo_pessoa != "Diretor"]
+    names = list(dict.fromkeys(n.strip() for n in (payload.diretor or "").split(",") if n.strip()))
+    for name in names:
+        director = await db.scalar(
+            select(DimPerson).where(
+                DimPerson.nome_pessoa == name, DimPerson.tipo_pessoa == "Diretor"
+            )
+        )
+        if director is None:
+            director = DimPerson(nome_pessoa=name, tipo_pessoa="Diretor")
+            db.add(director)
+        others.append(director)
+    movie.people = others
+
+
+@router.post("", response_model=MovieDetail, status_code=201)
+async def create_movie(
+    payload: MovieInput, db: Annotated[AsyncSession, Depends(get_db)]
+) -> MovieDetail:
+    # Filmes cadastrados pelo app ganham um id próprio, diferente dos ids do TMDB.
+    movie = DimMovie(id_filme=f"cd-{uuid4().hex[:10]}", titulo=payload.titulo, genres=[], people=[])
+    db.add(movie)
+    await _apply_input(db, movie, payload)
+    await db.commit()
+
+    return _to_detail(await _load_movie(db, movie.id_filme))
+
+
+@router.get("/{id_filme}", response_model=MovieDetail)
+async def get_movie(id_filme: str, db: Annotated[AsyncSession, Depends(get_db)]) -> MovieDetail:
+    return _to_detail(await _load_movie(db, id_filme))
 
 
 @router.get("/{id_filme}/reviews", response_model=Page[MovieReviewOut])

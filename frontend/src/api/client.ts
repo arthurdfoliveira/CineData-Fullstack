@@ -1,6 +1,7 @@
 import type {
   MovieDetail,
   MovieFilters,
+  MovieInput,
   MovieListItem,
   Page,
   Review,
@@ -11,19 +12,32 @@ const API_URL = '/api/v1'
 
 export class ApiError extends Error {
   readonly status: number
+  /** Mensagem de erro que o backend mandou em `detail`, quando é texto. */
+  readonly detail?: string
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, detail?: string) {
     super(message)
     this.status = status
+    this.detail = detail
   }
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, init)
   if (!response.ok) {
-    throw new ApiError(response.status, `Erro ${response.status} ao acessar ${path}`)
+    const body = await response.json().catch(() => null)
+    const detail = typeof body?.detail === 'string' ? body.detail : undefined
+    throw new ApiError(response.status, `Erro ${response.status} ao acessar ${path}`, detail)
   }
   return response.json() as Promise<T>
+}
+
+function sendJson<T>(method: 'POST', path: string, body: unknown) {
+  return request<T>(path, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
 }
 
 export function getMovies(filters: MovieFilters, signal?: AbortSignal) {
@@ -50,9 +64,9 @@ export function getMovieReviews(id: string, page: number, signal?: AbortSignal) 
 }
 
 export function createReview(id: string, review: ReviewInput) {
-  return request<Review>(`/movies/${encodeURIComponent(id)}/reviews`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(review),
-  })
+  return sendJson<Review>('POST', `/movies/${encodeURIComponent(id)}/reviews`, review)
+}
+
+export function createMovie(movie: MovieInput) {
+  return sendJson<MovieDetail>('POST', '/movies', movie)
 }
