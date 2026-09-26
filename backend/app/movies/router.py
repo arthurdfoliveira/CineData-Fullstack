@@ -225,6 +225,17 @@ async def get_movie(id_filme: str, db: Annotated[AsyncSession, Depends(get_db)])
     return _to_detail(await _load_movie(db, id_filme))
 
 
+@router.put("/{id_filme}", response_model=MovieDetail)
+async def update_movie(
+    id_filme: str, payload: MovieInput, db: Annotated[AsyncSession, Depends(get_db)]
+) -> MovieDetail:
+    movie = await _load_movie(db, id_filme)
+    await _apply_input(db, movie, payload)
+    await db.commit()
+
+    return _to_detail(await _load_movie(db, id_filme))
+
+
 @router.get("/{id_filme}/reviews", response_model=Page[MovieReviewOut])
 async def list_movie_reviews(
     id_filme: str,
