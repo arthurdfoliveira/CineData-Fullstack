@@ -94,7 +94,7 @@ export function CatalogPage() {
 
         <label>
           <span>Gênero</span>
-          <select value={genero} onChange={(e) => update({ genero: e.target.value })}>
+          <select name="genero" value={genero} onChange={(e) => update({ genero: e.target.value })}>
             <option value="">Todos</option>
             {genres.data?.map((nome) => (
               <option key={nome} value={nome}>
@@ -106,7 +106,7 @@ export function CatalogPage() {
 
         <label>
           <span>Ordenar por</span>
-          <select value={ordem} onChange={(e) => update({ ordem: e.target.value })}>
+          <select name="ordem" value={ordem} onChange={(e) => update({ ordem: e.target.value })}>
             {ORDER_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}

@@ -45,6 +45,7 @@ export function ReviewForm({ movieId, onCreated }: Props) {
         <label>
           <span>Seu nome</span>
           <input
+            name="nome"
             value={nome}
             onChange={(e) => setNome(e.target.value)}
             maxLength={120}
@@ -55,6 +56,7 @@ export function ReviewForm({ movieId, onCreated }: Props) {
         <label className="review-form__nota">
           <span>Nota (0 a 10)</span>
           <input
+            name="nota"
             type="number"
             value={nota}
             onChange={(e) => setNota(e.target.value)}
@@ -70,6 +72,7 @@ export function ReviewForm({ movieId, onCreated }: Props) {
       <label>
         <span>Comentário</span>
         <textarea
+          name="comentario"
           value={comentario}
           onChange={(e) => setComentario(e.target.value)}
           maxLength={4000}

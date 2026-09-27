@@ -118,6 +118,8 @@ export function MovieForm({ initial = EMPTY, submitLabel, onSubmit, onCancel }: 
               <label key={nome} className="genre-picker__option">
                 <input
                   type="checkbox"
+                  name="generos"
+                  value={nome}
                   checked={selected.includes(nome)}
                   onChange={() => toggleGenre(nome)}
                 />
