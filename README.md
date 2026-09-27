@@ -144,9 +144,10 @@ Todas as rotas ficam sob o prefixo `/api/v1`.
 
 ## Decisões de projeto
 
-- **Nota de 0 a 10:** os CSVs já trazem cerca de 43 mil avaliações nessa escala. O sistema de avaliação foi feito com uma nota inteira de 0 a 10.
+- **Nota de 0 a 10:** os CSVs já trazem cerca de 43 mil avaliações nessa escala. O sistema de avaliação é feito com notas de 0 a 10, de 0.5 em 0.5.
 - **Filmes cadastrados pelo app ganham id com prefixo `cd-`**, pra não colidir com os ids do TMDB dos filmes da carga inicial.
 - **O campo "Direção" aceita vários nomes separados por vírgula.** Mais de 9 mil filmes da base têm mais de um diretor. Ao editar um filme, só a direção muda, e elenco e roteiristas continuam iguais.
+- **As médias de avaliação são recalculadas na carga.** O `dim_reviews.csv` não bate com o `movies_reviews.csv`: milhares de filmes têm avaliações sem média ou com contagem diferente. Por isso, no fim do seed, as médias são refeitas a partir das avaliações reais, do mesmo jeito que a API faz a cada nova avaliação.
 
 ---
 
